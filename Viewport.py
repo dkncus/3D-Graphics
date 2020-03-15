@@ -6,7 +6,7 @@ import math
 import random
 
 vert_width = 4
-edge_width = 1
+edge_width = 2
 
 class Viewport:
 	objects = []
@@ -34,7 +34,7 @@ class Viewport:
 		m = mesh
 		self.objects.append(m)
 
-	def update(self, draw_faces=True, draw_verts=True, draw_faces=True):
+	def update(self, draw_f=True, draw_v=True, draw_e=True):
 		dt = self.clock.tick()/1000
 		#get the current event type
 		for event in pygame.event.get():
@@ -44,13 +44,14 @@ class Viewport:
 
 		self.screen.fill((64, 64, 64))
 		for mesh in self.objects:
-			self.draw_mesh(mesh, draw_verts=draw_verts, draw_edges=draw_edges, draw_faces=draw_faces)
+			self.draw_mesh(mesh, draw_verts=draw_v, draw_edges=draw_e, draw_faces=draw_f)
 		#Update screen
 		pygame.display.flip()
 		key = pygame.key.get_pressed()
 		self.cam.update(dt,key)
 
-	def draw_mesh(self, mesh, draw_edges = True, draw_verts = True, draw_faces = True):
+	def draw_mesh(self, mesh, draw_verts = True, draw_edges = True, draw_faces = True):
+		render_queue = []
 		if draw_verts:
 			for v in mesh.verts:
 				if self.cam.projection == "ortho":
@@ -68,14 +69,16 @@ class Viewport:
 					x,z = self.rotate((x,z), self.cam.rot[1])
 					y,z = self.rotate((y,z), self.cam.rot[0])
 					x, y = self.get_persp_coords(x=x , y=y, z=z)
-				
 				#only draw vertex if the object is on the screen
 				if int(x) > 0 and int(y) > 0 and int(x) < self.width and int(y) < self.height:
-					pygame.draw.rect(self.screen, (255, 255, 255), (int(x - vert_width // 2), int(y - vert_width // 2), vert_width, vert_width))
+					dist = self.get_dist_to_cam(v[0], v[1], v[2])
+					render_queue.append([0, dist, [int(x), int(y)]])
 		if draw_edges:
 			for edge in mesh.edges:
 				points = []
+				points3d = []
 				for x, y, z in (mesh.verts[edge[0]], mesh.verts[edge[1]]):
+					points3d.append([x,y,z])
 					if self.cam.projection == "ortho":
 						x = x - self.cam.pos[0]
 						y = y - self.cam.pos[1]
@@ -89,14 +92,23 @@ class Viewport:
 						y,z = self.rotate((y,z), self.cam.rot[0])
 						x, y = self.get_persp_coords(x=x , y=y, z=z)
 					points.append([int(x), int(y)])
-				pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
+				center = [((points3d[1][0]+points3d[0][0])/2), ((points3d[1][1]+points3d[0][1])/2), ((points3d[1][2]+points3d[0][2])/2)]
+				dist = self.get_dist_to_cam(center[0], center[1], center[2])
+				render_queue.append([1, dist, points])
+		#If drawing faces is enabled
 		if draw_faces:
+			#For each face in the mesh's faces
 			for f in mesh.faces:
+				#Get face point 1, 2, and 3
 				p1 = f[0]
 				p2 = f[1]
 				p3 = f[2]
 				points = []
+				#get 3d points for render queueing
+				points3d = [mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]]
+				#for each X, Y, Z in mesh.verts
 				for x,y,z in mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]:
+					#if the projection is orthographic
 					if self.cam.projection == "ortho":
 						x = x - self.cam.pos[0]
 						y = y - self.cam.pos[1]
@@ -105,13 +117,46 @@ class Viewport:
 						y,z = self.rotate((y,z), self.cam.rot[0])
 						x = x * self.cam.e_z + self.cx
 						y = y * self.cam.e_z + self.cy
+					#if the projection is perspective
 					if self.cam.projection == "persp":
 						x,z = self.rotate((x,z), self.cam.rot[1])
 						y,z = self.rotate((y,z), self.cam.rot[0])
 						x, y = self.get_persp_coords(x=x , y=y, z=z)
-					points.append([int(x), int(y)])	
-				pygame.draw.polygon(self.screen,(140,140,140),points)
-	
+					#append the points
+					points.append([int(x), int(y)])
+				#Find the center of the current face
+				center = [((points3d[2][0]+points3d[1][0]+points3d[0][0])/3), ((points3d[2][1]+points3d[1][1]+points3d[0][1])/3), ((points3d[2][2]+points3d[1][2]+points3d[0][2])/3)]
+				#distance from the center to the camera
+				dist = self.get_dist_to_cam(center[0], center[1], center[2])
+				#Append the face to the render queue
+				render_queue.append([2, dist, points])
+		
+		#Sort the render queue by decending order of distance
+		render_queue.sort(key=self.get_dist, reverse=True)
+		for r in render_queue:
+			print(r)
+		print()
+		for item in render_queue:
+			if item[0] == 0 and draw_verts:
+				coord = item[2]
+				pygame.draw.rect(self.screen, (255, 255, 255), (coord[0] - vert_width // 2, coord[1] - vert_width // 2, vert_width, vert_width))
+			if item[0] == 1 and draw_edges:
+				points = item[2]
+				pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
+			if item[0] == 2 and draw_faces:
+				points = item[2]
+				r = 140
+				pygame.draw.polygon(self.screen, (r,r,r), points)
+		#Verts
+		#pygame.draw.rect(self.screen, (255, 255, 255), (int(x - vert_width // 2), int(y - vert_width // 2), vert_width, vert_width))
+		#Edges
+		#pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
+		#Polys
+		#pygame.draw.polygon(self.screen,(140,140,140),points)
+		
+	def get_dist(self,elem):
+		return elem[1]
+
 	def rotate(self, pos, rad): 
 		x,y = pos
 		s,c = math.sin(rad), math.cos(rad)
@@ -144,3 +189,12 @@ class Viewport:
 			By = self.cy
 
 		return Bx, By
+
+	def get_dist_to_cam(self,x,y,z):
+		x2, y2, z2 = x, y, z
+		x1, y1, z1 = self.cam.pos[0], self.cam.pos[1], self.cam.pos[2]
+		x_dist = (x2 - x1) * (x2 - x1)
+		y_dist = (y2 - y1) * (y2 - y1)
+		z_dist = (z2 - z1) * (z2 - z1)
+		dist = math.sqrt(x_dist + y_dist + z_dist)
+		return dist

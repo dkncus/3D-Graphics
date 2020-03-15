@@ -3,6 +3,8 @@ from Mesh import Mesh
 v = Viewport(disable_mouse=True, w=1280, h=720)
 
 v.add_object(Mesh(name="Cube", primitive_type="cube", pos=[0, 0, 0]))
+v.add_object(Mesh(name="Cube", primitive_type="cube", pos=[-3, 0, 0]))
+v.add_object(Mesh(name="Cube", primitive_type="cube", pos=[3, 0, 0]))
 #v.add_object(Mesh(name="Sphere4", primitive_type="uvsphere", pos=[3, 0, 0], segments=4))
 #v.add_object(Mesh(name="Sphere8", primitive_type="uvsphere", pos=[0, 0, 0], segments=8))
 #v.add_object(Mesh(name="Sphere12", primitive_type="uvsphere", pos=[-3, 0, 0], segments=12))
