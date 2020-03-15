@@ -1,8 +1,4 @@
 import math
-import pygame
-
-vert_width = 4;
-edge_width = 1;
 
 class Mesh:
 	def __init__(self, primitive_type, name="", pos=[0,0,0], verts=[], edges=[], segments = 4):
@@ -32,70 +28,8 @@ class Mesh:
 				n[0] -= pos[0]
 				n[1] -= pos[1]
 				n[2] -= pos[2]
-	def rotate2d(self, pos, rad): 
-		x,y = pos
-		s,c = math.sin(rad), math.cos(rad)
-		return x*c - y*s, y*c + x*s
 
-	def draw_mesh_ortho(self, cam, screen, cx, cy, draw_edges = True, draw_verts = True):
-		if draw_edges:
-			for edge in self.edges:
-				points = []
-				for x, y, z in (self.verts[edge[0]], self.verts[edge[1]]):
-					x-=cam.pos[0]
-					y-=cam.pos[1]
-					z-=cam.pos[2]
-					x,z = self.rotate2d((x,z), cam.rot[1])
-					y,z = self.rotate2d((y,z), cam.rot[0])
-
-					x = x * cam.dof
-					y = y * cam.dof
-
-					points += [(cx + int(x), cy+int(y))]
-				
-				pygame.draw.line(screen, (255,255,255), points[0], points[1], edge_width)
-		if draw_verts:
-			for v in self.verts:
-				x = v[0] - cam.pos[0]
-				y = v[1] - cam.pos[1]
-				z = v[2] - cam.pos[2]
-				x,z = self.rotate2d((x,z), cam.rot[1])
-				y,z = self.rotate2d((y,z), cam.rot[0])
-
-				x = x * cam.dof
-				y = y * cam.dof
-
-				pygame.draw.rect(screen, (255, 255, 255), (cx + int(x - vert_width / 2), cy + int(y - vert_width / 2), vert_width, vert_width))
-
-	def draw_mesh_persp(self, cam, screen, cx, cy, draw_edges = True, draw_verts = True):
-		if draw_edges:
-			for edge in self.edges:
-				points = []
-				for x, y, z in (self.verts[edge[0]], self.verts[edge[1]]):
-					x-=cam.pos[0]
-					y-=cam.pos[1]
-					z-=cam.pos[2]
-					x,z = self.rotate2d((x,z), cam.rot[1])
-					y,z = self.rotate2d((y,z), cam.rot[0])
-
-					x = x * (cam.dof/z)
-					y = y * (cam.dof/z)
-
-					points += [(cx + int(x), cy+int(y))]
-				
-				pygame.draw.line(screen, (255,255,255), points[0], points[1], edge_width)
-		if draw_verts:
-			for v in self.verts:
-				x = v[0] - cam.pos[0]
-				y = v[1] - cam.pos[1]
-				z = v[2] - cam.pos[2]
-				x,z = self.rotate2d((x,z), cam.rot[1])
-				y,z = self.rotate2d((y,z), cam.rot[0])
-
-				x = x * (cam.dof/z)
-				y = y * (cam.dof/z)
-
-				pygame.draw.rect(screen, (255, 255, 255), (cx + int(x - vert_width / 2), cy + int(y - vert_width / 2), vert_width, vert_width))
+	
 
 	def gen_uv_sphere(self, segments):
 		verts = []
