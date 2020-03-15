@@ -4,8 +4,8 @@ from Camera import Camera
 from Mesh import Mesh
 import math
 
-vert_width = 5
-edge_width = 2
+vert_width = 4
+edge_width = 1
 
 class Viewport:
 	objects = []
@@ -49,7 +49,7 @@ class Viewport:
 		key = pygame.key.get_pressed()
 		self.cam.update(dt,key)
 
-	def draw_mesh(self, mesh, draw_edges = True, draw_verts = True, draw_faces = True):
+	def draw_mesh(self, mesh, draw_edges = True, draw_verts = False, draw_faces = True):
 		if draw_edges:
 			for edge in mesh.edges:
 				points = []
