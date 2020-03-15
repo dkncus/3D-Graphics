@@ -1,7 +1,7 @@
 import math
 
 class Mesh:
-	def __init__(self, primitive_type, name="", pos=[0,0,0], verts=[], edges=[], segments = 4):
+	def __init__(self, primitive_type, name="", pos=[0,0,0], verts=[], edges=[], faces=[], segments = 4):
 		self.name = name;
 		if primitive_type == "cube":
 			self.verts = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]]
@@ -9,7 +9,8 @@ class Mesh:
 				n[0] -= pos[0]
 				n[1] -= pos[1]
 				n[2] -= pos[2]
-			self.edges = [(0,1), (3,2), (4,5), (7,6), (0,3), (4,7), (1,2), (5,6), (0,4), (1,5), (2,6), (3,7)]
+			self.edges = [(0,1), (3,2), (4,5), (7,6), (0,3), (4,7), (1,2), (5,6), (0,4), (1,5), (2,6), (3,7), (1,3), (0,7), (4,6), (5,2), (0,5), (7,2)]
+			self.faces = [(0,1,3),(1,2,3),(1,2,5),(2,5,6),(4,7,6),(4,5,6),(0,4,7),(0,3,7),(2,3,7), (2,6,7), (0,4,5), (0,1,5)]
 		if primitive_type == "point":
 			self.verts = [[0, 0, 0]]
 			self.verts[0][0] -= pos[0]
@@ -28,8 +29,6 @@ class Mesh:
 				n[0] -= pos[0]
 				n[1] -= pos[1]
 				n[2] -= pos[2]
-
-	
 
 	def gen_uv_sphere(self, segments):
 		verts = []

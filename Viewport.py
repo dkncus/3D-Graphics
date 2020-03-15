@@ -3,6 +3,7 @@ import sys
 from Camera import Camera
 from Mesh import Mesh
 import math
+import random
 
 vert_width = 4
 edge_width = 1
@@ -33,7 +34,7 @@ class Viewport:
 		m = mesh
 		self.objects.append(m)
 
-	def update(self):
+	def update(self, draw_faces=True, draw_verts=True, draw_faces=True):
 		dt = self.clock.tick()/1000
 		#get the current event type
 		for event in pygame.event.get():
@@ -43,31 +44,13 @@ class Viewport:
 
 		self.screen.fill((64, 64, 64))
 		for mesh in self.objects:
-			self.draw_mesh(mesh)
+			self.draw_mesh(mesh, draw_verts=draw_verts, draw_edges=draw_edges, draw_faces=draw_faces)
 		#Update screen
 		pygame.display.flip()
 		key = pygame.key.get_pressed()
 		self.cam.update(dt,key)
 
-	def draw_mesh(self, mesh, draw_edges = True, draw_verts = False, draw_faces = True):
-		if draw_edges:
-			for edge in mesh.edges:
-				points = []
-				for x, y, z in (mesh.verts[edge[0]], mesh.verts[edge[1]]):
-					if self.cam.projection == "ortho":
-						x = x - self.cam.pos[0]
-						y = y - self.cam.pos[1]
-						z = z - self.cam.pos[2]
-						x,z = self.rotate((x,z), self.cam.rot[1])
-						y,z = self.rotate((y,z), self.cam.rot[0])
-						x = x * self.cam.e_z + self.cx
-						y = y * self.cam.e_z + self.cy
-					if self.cam.projection == "persp":
-						x,z = self.rotate((x,z), self.cam.rot[1])
-						y,z = self.rotate((y,z), self.cam.rot[0])
-						x, y = self.get_persp_coords(x=x , y=y, z=z)
-					points.append([int(x), int(y)])
-				pygame.draw.line(self.screen, (255,255,255), points[0], points[1], edge_width)
+	def draw_mesh(self, mesh, draw_edges = True, draw_verts = True, draw_faces = True):
 		if draw_verts:
 			for v in mesh.verts:
 				if self.cam.projection == "ortho":
@@ -89,6 +72,45 @@ class Viewport:
 				#only draw vertex if the object is on the screen
 				if int(x) > 0 and int(y) > 0 and int(x) < self.width and int(y) < self.height:
 					pygame.draw.rect(self.screen, (255, 255, 255), (int(x - vert_width // 2), int(y - vert_width // 2), vert_width, vert_width))
+		if draw_edges:
+			for edge in mesh.edges:
+				points = []
+				for x, y, z in (mesh.verts[edge[0]], mesh.verts[edge[1]]):
+					if self.cam.projection == "ortho":
+						x = x - self.cam.pos[0]
+						y = y - self.cam.pos[1]
+						z = z - self.cam.pos[2]
+						x,z = self.rotate((x,z), self.cam.rot[1])
+						y,z = self.rotate((y,z), self.cam.rot[0])
+						x = x * self.cam.e_z + self.cx
+						y = y * self.cam.e_z + self.cy
+					if self.cam.projection == "persp":
+						x,z = self.rotate((x,z), self.cam.rot[1])
+						y,z = self.rotate((y,z), self.cam.rot[0])
+						x, y = self.get_persp_coords(x=x , y=y, z=z)
+					points.append([int(x), int(y)])
+				pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
+		if draw_faces:
+			for f in mesh.faces:
+				p1 = f[0]
+				p2 = f[1]
+				p3 = f[2]
+				points = []
+				for x,y,z in mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]:
+					if self.cam.projection == "ortho":
+						x = x - self.cam.pos[0]
+						y = y - self.cam.pos[1]
+						z = z - self.cam.pos[2]
+						x,z = self.rotate((x,z), self.cam.rot[1])
+						y,z = self.rotate((y,z), self.cam.rot[0])
+						x = x * self.cam.e_z + self.cx
+						y = y * self.cam.e_z + self.cy
+					if self.cam.projection == "persp":
+						x,z = self.rotate((x,z), self.cam.rot[1])
+						y,z = self.rotate((y,z), self.cam.rot[0])
+						x, y = self.get_persp_coords(x=x , y=y, z=z)
+					points.append([int(x), int(y)])	
+				pygame.draw.polygon(self.screen,(140,140,140),points)
 	
 	def rotate(self, pos, rad): 
 		x,y = pos
