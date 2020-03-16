@@ -6,11 +6,12 @@ import math
 import random
 
 vert_width = 4
-edge_width = 2
+edge_width = 1
 
 class Viewport:
 	objects = []
 
+	#Setup viewport
 	def __init__(self, w=1280, h=720, c=Camera(pos=(0, 0, -5),rot=(0,0,0),cam_type="persp"), obj=[], disable_mouse = False):
 		pygame.init()
 		#Screen setup/View Settings
@@ -30,10 +31,12 @@ class Viewport:
 			pygame.mouse.set_visible(0)
 			pygame.event.set_grab(1)
 
+	#Add objects to the scene
 	def add_object(self, mesh):
 		m = mesh
 		self.objects.append(m)
 
+	#Update the screen every frame
 	def update(self, draw_f=True, draw_v=True, draw_e=True):
 		dt = self.clock.tick()/1000
 		#get the current event type
@@ -49,17 +52,16 @@ class Viewport:
 		for mesh in self.objects:
 			render_queue += self.draw_mesh(mesh, draw_verts=draw_v, draw_edges=draw_e, draw_faces=draw_f)
 		render_queue.sort(key=self.get_dist, reverse=True)
-		for r in render_queue:
-			print(r)
 
-		print()
 		self.render(render_queue)
 
+		self.display_stats(render_queue)
 		#Update screen
 		pygame.display.flip()
 		key = pygame.key.get_pressed()
 		self.cam.update(dt,key)
 
+	#Add all objects of a mesh to a render queue
 	def draw_mesh(self, mesh, draw_verts = True, draw_edges = True, draw_faces = True):
 		render_queue = []
 		if draw_verts:
@@ -77,30 +79,60 @@ class Viewport:
 					x, y = self.get_screen_loc(x=x, y=y, z=z)
 					points.append([int(x), int(y)])
 				center = [((points3d[1][0]+points3d[0][0])/2), ((points3d[1][1]+points3d[0][1])/2), ((points3d[1][2]+points3d[0][2])/2)]
-				dist = self.get_dist_to_cam(center[0], center[1], center[2])
-				render_queue.append([1, dist, points])
+				point_1_in_view = (points[0][0] > 0 and points[0][1] > 0) and (points[0][0] < self.width and points[0][1] < self.height)
+				point_2_in_view = (points[1][0] > 0 and points[1][1] > 0) and (points[1][0] < self.width and points[1][1] < self.height)
+				if point_1_in_view or point_2_in_view:
+					dist = self.get_dist_to_cam(center[0], center[1], center[2])
+					render_queue.append([1, dist, points])
 
 		#If drawing faces is enabled
 		if draw_faces:
 			for f in mesh.faces:
-				p1 = f[0]
-				p2 = f[1]
-				p3 = f[2]
 				points = []
 				points3d = [mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]]
 				for x,y,z in mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]:
 					x, y = self.get_screen_loc(x=x, y=y, z=z)
 					points.append([int(x), int(y)])
 				center = [((points3d[2][0]+points3d[1][0]+points3d[0][0])/3), ((points3d[2][1]+points3d[1][1]+points3d[0][1])/3), ((points3d[2][2]+points3d[1][2]+points3d[0][2])/3)]
-				dist = self.get_dist_to_cam(center[0], center[1], center[2])
-				render_queue.append([2, dist, points])
+				point_1_in_view = (points[0][0] > 0 and points[0][1] > 0) and (points[0][0] < self.width and points[0][1] < self.height)
+				point_2_in_view = (points[1][0] > 0 and points[1][1] > 0) and (points[1][0] < self.width and points[1][1] < self.height)
+				point_3_in_view = (points[2][0] > 0 and points[2][1] > 0) and (points[2][0] < self.width and points[2][1] < self.height)
+				if point_1_in_view or point_2_in_view or point_3_in_view:
+					dist = self.get_dist_to_cam(center[0], center[1], center[2])
+					render_queue.append([2, dist, points])
 
 		#Render each item in the queue
 		return render_queue
-		
+	
+	#Get distance for render queueing sort
 	def get_dist(self,elem):
 		return elem[1]
 
+	#Returns the distance to the current camera
+	def get_dist_to_cam(self,x,y,z):
+		x2, y2, z2 = x, y, z
+		x1, y1, z1 = self.cam.pos[0], self.cam.pos[1], self.cam.pos[2]
+		x_dist = (x2 - x1) * (x2 - x1)
+		y_dist = (y2 - y1) * (y2 - y1)
+		z_dist = (z2 - z1) * (z2 - z1)
+		dist = math.sqrt(x_dist + y_dist + z_dist)
+		return dist
+
+	#Returns the x,y location of the screen that should be rendered 
+	def get_screen_loc(self,x,y,z):
+		#if the projection is orthographic
+		if self.cam.projection == "ortho":
+			x = x - self.cam.pos[0]
+			y = y - self.cam.pos[1]
+			z = z - self.cam.pos[2]
+			x = x * self.cam.e_z + self.cx
+			y = y * self.cam.e_z + self.cy
+		#if the projection is perspective
+		if self.cam.projection == "persp":
+			x, y = self.get_persp_coords(x=x , y=y, z=z)
+		return x,y
+
+	#Get coordinates on screen for perspective from 3D space
 	def get_persp_coords(self,x,y,z):
 		x = x - self.cam.pos[0]
 		y = y - self.cam.pos[1]
@@ -129,28 +161,7 @@ class Viewport:
 
 		return Bx, By
 
-	def get_dist_to_cam(self,x,y,z):
-		x2, y2, z2 = x, y, z
-		x1, y1, z1 = self.cam.pos[0], self.cam.pos[1], self.cam.pos[2]
-		x_dist = (x2 - x1) * (x2 - x1)
-		y_dist = (y2 - y1) * (y2 - y1)
-		z_dist = (z2 - z1) * (z2 - z1)
-		dist = math.sqrt(x_dist + y_dist + z_dist)
-		return dist
-
-	def get_screen_loc(self,x,y,z):
-		#if the projection is orthographic
-		if self.cam.projection == "ortho":
-			x = x - self.cam.pos[0]
-			y = y - self.cam.pos[1]
-			z = z - self.cam.pos[2]
-			x = x * self.cam.e_z + self.cx
-			y = y * self.cam.e_z + self.cy
-		#if the projection is perspective
-		if self.cam.projection == "persp":
-			x, y = self.get_persp_coords(x=x , y=y, z=z)
-		return x,y
-
+	#Render the final image from a render queue
 	def render(self, render_queue, draw_verts=True, draw_edges=True, draw_faces=True):
 		for item in render_queue:
 			if item[0] == 0 and draw_verts:
@@ -163,3 +174,22 @@ class Viewport:
 				points = item[2]
 				r = 140
 				pygame.draw.polygon(self.screen, (r,r,r), points)
+
+	#Display Poly/Vert/Edge count
+	def display_stats(self, render_queue):
+		poly_count, edge_count, vert_count = 0, 0, 0
+		for item in render_queue:
+			if item[0] == 0:
+				vert_count += 1;
+			if item[0] == 1:
+				edge_count += 1;
+			if item[0] == 2:
+				poly_count += 1;
+		font = pygame.font.Font('freesansbold.ttf', 32) 
+		s = "Statistics - Polys: "
+		s += str(poly_count)
+		s += " - Edges: " 
+		s += str(edge_count)
+		s += " - Verts: "
+		s += str(vert_count)
+		pygame.display.set_caption(s) 
