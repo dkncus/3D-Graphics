@@ -17,18 +17,21 @@ class Mesh:
 			self.verts[0][1] -= pos[1]
 			self.verts[0][2] -= pos[2]
 			self.edges = []
+			self.faces = []
 		if primitive_type == "uvsphere":
 			self.verts, self.edges = self.gen_uv_sphere(segments)
 			for n in self.verts:
 				n[0] -= pos[0]
 				n[1] -= pos[1]
 				n[2] -= pos[2]
+			self.faces = []
 		if primitive_type == "cylinder":
 			self.verts, self.edges = self.gen_cylinder(segments)
 			for n in self.verts:
 				n[0] -= pos[0]
 				n[1] -= pos[1]
 				n[2] -= pos[2]
+			self.faces = []
 
 	def gen_uv_sphere(self, segments):
 		verts = []

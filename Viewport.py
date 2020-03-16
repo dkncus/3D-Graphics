@@ -54,21 +54,7 @@ class Viewport:
 		render_queue = []
 		if draw_verts:
 			for v in mesh.verts:
-				if self.cam.projection == "ortho":
-					x = v[0] - self.cam.pos[0]
-					y = v[1] - self.cam.pos[1]
-					z = v[2] - self.cam.pos[2]
-					x,z = self.rotate((x,z), self.cam.rot[1])
-					y,z = self.rotate((y,z), self.cam.rot[0])
-					x = x * self.cam.e_z + self.cx
-					y = y * self.cam.e_z + self.cy
-				if self.cam.projection == "persp":
-					x = v[0]
-					y = v[1]
-					z = v[2]
-					x,z = self.rotate((x,z), self.cam.rot[1])
-					y,z = self.rotate((y,z), self.cam.rot[0])
-					x, y = self.get_persp_coords(x=x , y=y, z=z)
+				x, y = self.get_screen_loc(x=v[0], y=v[1], z=v[2])
 				#only draw vertex if the object is on the screen
 				if int(x) > 0 and int(y) > 0 and int(x) < self.width and int(y) < self.height:
 					dist = self.get_dist_to_cam(v[0], v[1], v[2])
@@ -76,66 +62,33 @@ class Viewport:
 		if draw_edges:
 			for edge in mesh.edges:
 				points = []
-				points3d = []
+				points3d = [mesh.verts[edge[0]], mesh.verts[edge[1]]]
 				for x, y, z in (mesh.verts[edge[0]], mesh.verts[edge[1]]):
-					points3d.append([x,y,z])
-					if self.cam.projection == "ortho":
-						x = x - self.cam.pos[0]
-						y = y - self.cam.pos[1]
-						z = z - self.cam.pos[2]
-						x,z = self.rotate((x,z), self.cam.rot[1])
-						y,z = self.rotate((y,z), self.cam.rot[0])
-						x = x * self.cam.e_z + self.cx
-						y = y * self.cam.e_z + self.cy
-					if self.cam.projection == "persp":
-						x,z = self.rotate((x,z), self.cam.rot[1])
-						y,z = self.rotate((y,z), self.cam.rot[0])
-						x, y = self.get_persp_coords(x=x , y=y, z=z)
+					x, y = self.get_screen_loc(x=x, y=y, z=z)
 					points.append([int(x), int(y)])
 				center = [((points3d[1][0]+points3d[0][0])/2), ((points3d[1][1]+points3d[0][1])/2), ((points3d[1][2]+points3d[0][2])/2)]
 				dist = self.get_dist_to_cam(center[0], center[1], center[2])
 				render_queue.append([1, dist, points])
+
 		#If drawing faces is enabled
 		if draw_faces:
-			#For each face in the mesh's faces
 			for f in mesh.faces:
-				#Get face point 1, 2, and 3
 				p1 = f[0]
 				p2 = f[1]
 				p3 = f[2]
 				points = []
-				#get 3d points for render queueing
 				points3d = [mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]]
-				#for each X, Y, Z in mesh.verts
 				for x,y,z in mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]:
-					#if the projection is orthographic
-					if self.cam.projection == "ortho":
-						x = x - self.cam.pos[0]
-						y = y - self.cam.pos[1]
-						z = z - self.cam.pos[2]
-						x,z = self.rotate((x,z), self.cam.rot[1])
-						y,z = self.rotate((y,z), self.cam.rot[0])
-						x = x * self.cam.e_z + self.cx
-						y = y * self.cam.e_z + self.cy
-					#if the projection is perspective
-					if self.cam.projection == "persp":
-						x,z = self.rotate((x,z), self.cam.rot[1])
-						y,z = self.rotate((y,z), self.cam.rot[0])
-						x, y = self.get_persp_coords(x=x , y=y, z=z)
-					#append the points
+					x, y = self.get_screen_loc(x=x, y=y, z=z)
 					points.append([int(x), int(y)])
-				#Find the center of the current face
 				center = [((points3d[2][0]+points3d[1][0]+points3d[0][0])/3), ((points3d[2][1]+points3d[1][1]+points3d[0][1])/3), ((points3d[2][2]+points3d[1][2]+points3d[0][2])/3)]
-				#distance from the center to the camera
 				dist = self.get_dist_to_cam(center[0], center[1], center[2])
-				#Append the face to the render queue
 				render_queue.append([2, dist, points])
 		
 		#Sort the render queue by decending order of distance
 		render_queue.sort(key=self.get_dist, reverse=True)
-		for r in render_queue:
-			print(r)
-		print()
+
+		#Render each item in the queue
 		for item in render_queue:
 			if item[0] == 0 and draw_verts:
 				coord = item[2]
@@ -156,11 +109,6 @@ class Viewport:
 		
 	def get_dist(self,elem):
 		return elem[1]
-
-	def rotate(self, pos, rad): 
-		x,y = pos
-		s,c = math.sin(rad), math.cos(rad)
-		return x*c - y*s, y*c + x*s
 
 	def get_persp_coords(self,x,y,z):
 		x = x - self.cam.pos[0]
@@ -198,3 +146,16 @@ class Viewport:
 		z_dist = (z2 - z1) * (z2 - z1)
 		dist = math.sqrt(x_dist + y_dist + z_dist)
 		return dist
+
+	def get_screen_loc(self,x,y,z):
+		#if the projection is orthographic
+		if self.cam.projection == "ortho":
+			x = x - self.cam.pos[0]
+			y = y - self.cam.pos[1]
+			z = z - self.cam.pos[2]
+			x = x * self.cam.e_z + self.cx
+			y = y * self.cam.e_z + self.cy
+		#if the projection is perspective
+		if self.cam.projection == "persp":
+			x, y = self.get_persp_coords(x=x , y=y, z=z)
+		return x,y
