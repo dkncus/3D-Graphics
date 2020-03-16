@@ -43,8 +43,18 @@ class Viewport:
 			self.cam.events(event)
 
 		self.screen.fill((64, 64, 64))
+
+		#render mesh with the render queue
+		render_queue = []
 		for mesh in self.objects:
-			self.draw_mesh(mesh, draw_verts=draw_v, draw_edges=draw_e, draw_faces=draw_f)
+			render_queue += self.draw_mesh(mesh, draw_verts=draw_v, draw_edges=draw_e, draw_faces=draw_f)
+		render_queue.sort(key=self.get_dist, reverse=True)
+		for r in render_queue:
+			print(r)
+
+		print()
+		self.render(render_queue)
+
 		#Update screen
 		pygame.display.flip()
 		key = pygame.key.get_pressed()
@@ -84,28 +94,9 @@ class Viewport:
 				center = [((points3d[2][0]+points3d[1][0]+points3d[0][0])/3), ((points3d[2][1]+points3d[1][1]+points3d[0][1])/3), ((points3d[2][2]+points3d[1][2]+points3d[0][2])/3)]
 				dist = self.get_dist_to_cam(center[0], center[1], center[2])
 				render_queue.append([2, dist, points])
-		
-		#Sort the render queue by decending order of distance
-		render_queue.sort(key=self.get_dist, reverse=True)
 
 		#Render each item in the queue
-		for item in render_queue:
-			if item[0] == 0 and draw_verts:
-				coord = item[2]
-				pygame.draw.rect(self.screen, (255, 255, 255), (coord[0] - vert_width // 2, coord[1] - vert_width // 2, vert_width, vert_width))
-			if item[0] == 1 and draw_edges:
-				points = item[2]
-				pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
-			if item[0] == 2 and draw_faces:
-				points = item[2]
-				r = 140
-				pygame.draw.polygon(self.screen, (r,r,r), points)
-		#Verts
-		#pygame.draw.rect(self.screen, (255, 255, 255), (int(x - vert_width // 2), int(y - vert_width // 2), vert_width, vert_width))
-		#Edges
-		#pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
-		#Polys
-		#pygame.draw.polygon(self.screen,(140,140,140),points)
+		return render_queue
 		
 	def get_dist(self,elem):
 		return elem[1]
@@ -159,3 +150,16 @@ class Viewport:
 		if self.cam.projection == "persp":
 			x, y = self.get_persp_coords(x=x , y=y, z=z)
 		return x,y
+
+	def render(self, render_queue, draw_verts=True, draw_edges=True, draw_faces=True):
+		for item in render_queue:
+			if item[0] == 0 and draw_verts:
+				coord = item[2]
+				pygame.draw.rect(self.screen, (255, 255, 255), (coord[0] - vert_width // 2, coord[1] - vert_width // 2, vert_width, vert_width))
+			if item[0] == 1 and draw_edges:
+				points = item[2]
+				pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
+			if item[0] == 2 and draw_faces:
+				points = item[2]
+				r = 140
+				pygame.draw.polygon(self.screen, (r,r,r), points)
