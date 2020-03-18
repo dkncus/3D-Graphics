@@ -2,19 +2,21 @@ import pygame
 import sys
 from Camera import Camera
 from Mesh import Mesh
+from Light import Light
 import math
-import random
 
+ambient_light_val = .5
 vert_width = 10
 edge_width = 1
 vert_color = (253, 208, 0)
-edge_color = (0, 185, 250)
+edge_color = (255,255,255)
 
 class Viewport:
 	objects = []
-
+	object_colors = []
+	lights = [Light(light_type="point", name="point001", pos=[-5,-5,-5])]
 	#Setup viewport
-	def __init__(self, w=1280, h=720, c=Camera(pos=(6.1, -2.7, -18.7),rot=(-.5,-0.712,0),cam_type="persp"), obj=[], disable_mouse = False):
+	def __init__(self, w=1280, h=720, c=Camera(pos=(0, 0, 0),rot=(0,0,0),cam_type="persp"), obj=[], disable_mouse = False):
 		pygame.init()
 		#Screen setup/View Settings
 		self.width = w
@@ -51,20 +53,21 @@ class Viewport:
 
 		#render mesh with the render queue
 		render_queue = []
-		for mesh in self.objects:
-			render_queue += self.draw_mesh(mesh, draw_verts=draw_v, draw_edges=draw_e, draw_faces=draw_f)
+		for i, mesh in enumerate(self.objects):
+			render_queue += self.draw_mesh(mesh=mesh, mesh_id=i, draw_verts=draw_v, draw_edges=draw_e, draw_faces=draw_f)
 		render_queue.sort(key=self.get_dist, reverse=True)
 
 		self.render(render_queue)
 
 		self.display_stats(render_queue)
+
 		#Update screen
 		pygame.display.flip()
 		key = pygame.key.get_pressed()
 		self.cam.update(dt,key)
 
 	#Add all objects of a mesh to a render queue
-	def draw_mesh(self, mesh, draw_verts = True, draw_edges = True, draw_faces = True):
+	def draw_mesh(self, mesh, mesh_id, draw_verts = True, draw_edges = True, draw_faces = True):
 		render_queue = []
 		if draw_verts:
 			for v in mesh.verts:
@@ -72,7 +75,7 @@ class Viewport:
 				#only draw vertex if the object is on the screen
 				if int(x) > 0 and int(y) > 0 and int(x) < self.width and int(y) < self.height:
 					dist = self.get_dist_to_cam(v[0], v[1], v[2])
-					render_queue.append([0, dist, [int(x), int(y)]])
+					render_queue.append([0, dist, [int(x), int(y)], mesh_id])
 		if draw_edges:
 			for edge in mesh.edges:
 				points = []
@@ -85,23 +88,33 @@ class Viewport:
 				point_2_in_view = (points[1][0] > 0 and points[1][1] > 0) and (points[1][0] < self.width and points[1][1] < self.height)
 				if point_1_in_view or point_2_in_view:
 					dist = self.get_dist_to_cam(center[0], center[1], center[2])
-					render_queue.append([1, dist, points])
+					render_queue.append([1, dist, points, mesh_id])
 
 		#If drawing faces is enabled
 		if draw_faces:
-			for f in mesh.faces:
-				points = []
-				points3d = [mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]]
-				for x,y,z in mesh.verts[f[0]], mesh.verts[f[1]], mesh.verts[f[2]]:
-					x, y = self.get_screen_loc(x=x, y=y, z=z)
-					points.append([int(x), int(y)])
-				center = [((points3d[2][0]+points3d[1][0]+points3d[0][0])/3), ((points3d[2][1]+points3d[1][1]+points3d[0][1])/3), ((points3d[2][2]+points3d[1][2]+points3d[0][2])/3)]
-				point_1_in_view = (points[0][0] > 0 and points[0][1] > 0) and (points[0][0] < self.width and points[0][1] < self.height)
-				point_2_in_view = (points[1][0] > 0 and points[1][1] > 0) and (points[1][0] < self.width and points[1][1] < self.height)
-				point_3_in_view = (points[2][0] > 0 and points[2][1] > 0) and (points[2][0] < self.width and points[2][1] < self.height)
-				if point_1_in_view or point_2_in_view or point_3_in_view:
+			for face in mesh.faces:
+				points3d = []
+				pointsXY = []
+				
+				for i, point in enumerate(face):
+					points3d.append(mesh.verts[face[i]])
+				for v in points3d:
+					x, y = self.get_screen_loc(x=v[0], y=v[1], z=v[2])
+					pointsXY.append([int(x), int(y)])
+				points_in_view = []
+				center = [0,0,0]
+				for n in points3d:
+					center[0] += n[0]
+					center[0] /= 2 
+					center[1] += n[1]
+					center[1] /= 2
+					center[2] += n[2]
+					center[2] /= 2
+				for point in pointsXY:
+					points_in_view.append((point[0] > 0 and point[1] > 0) and (point[0] < self.width and point[1] < self.height))
+				if any(points_in_view):
 					dist = self.get_dist_to_cam(center[0], center[1], center[2])
-					render_queue.append([2, dist, points])
+					render_queue.append([2, dist, pointsXY, mesh_id])
 
 		#Render each item in the queue
 		return render_queue
@@ -174,8 +187,9 @@ class Viewport:
 				pygame.draw.aaline(self.screen, edge_color, points[0], points[1], edge_width)
 			if item[0] == 2 and draw_faces:
 				points = item[2]
-				r = 140
-				pygame.draw.polygon(self.screen, (r,r,r), points)
+				n = self.objects[item[3]].color
+				color = (int(n[0]*ambient_light_val), int(n[1]*ambient_light_val), int(n[2]*ambient_light_val)) 
+				pygame.draw.polygon(self.screen, color, points)
 
 	#Display Poly/Vert/Edge count
 	def display_stats(self, render_queue):
@@ -195,3 +209,4 @@ class Viewport:
 		s += " - Verts: "
 		s += str(vert_count)
 		pygame.display.set_caption(s) 
+

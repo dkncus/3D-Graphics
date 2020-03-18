@@ -1,17 +1,19 @@
 import math
 
 class Mesh:
-	def __init__(self, primitive_type, name="", pos=[0,0,0], verts=[], edges=[], faces=[], segments = 4):
+	def __init__(self, primitive_type, name="", pos=[0,0,0], verts=[], edges=[], faces=[], face_normals=[], color=(255,255,255), segments = 4):
 		self.name = name;
 		self.primitive_type = primitive_type
+		self.color = color
 		if primitive_type == "cube":
 			self.verts = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]]
 			for n in self.verts:
 				n[0] -= pos[0]
 				n[1] -= pos[1]
 				n[2] -= pos[2]
-			self.edges = [(0,1), (3,2), (4,5), (7,6), (0,3), (4,7), (1,2), (5,6), (0,4), (1,5), (2,6), (3,7), (1,3), (0,7), (4,6), (5,2), (0,5), (7,2)]
-			self.faces = [(0,1,3),(1,2,3),(1,2,5),(2,5,6),(4,7,6),(4,5,6),(0,4,7),(0,3,7),(2,3,7), (2,6,7), (0,4,5), (0,1,5)]
+			self.edges = [(0,1), (3,2), (4,5), (7,6), (0,3), (4,7), (1,2), (5,6), (0,4), (1,5), (2,6), (3,7)]
+			self.faces = [(0,1,2,3),(1,0,4,5),(4,5,6,7),(7,6,2,3),(0,4,7,3),(1,2,6,5)]
+			self.face_normals = [(0,0,-1),(0,-1,0),(0,0,1),(0,1,0),(-1,0,0),(1,0,0)]
 		if primitive_type == "point":
 			self.verts = [[0, 0, 0]]
 			self.verts[0][0] -= pos[0]
@@ -116,4 +118,4 @@ class Mesh:
 		for joint in self.verts:
 			joint[0] -= x_off
 			joint[1] -= y_off
-			joint[2] -= z_off
+			joint[2] -= z_of
