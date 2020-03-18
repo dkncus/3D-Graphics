@@ -6,7 +6,7 @@ import math
 import random
 
 vert_width = 10
-edge_width = 100
+edge_width = 1
 class Viewport:
 	objects = []
 
