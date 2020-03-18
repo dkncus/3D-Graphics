@@ -5,14 +5,13 @@ from Mesh import Mesh
 import math
 import random
 
-vert_width = 4
-edge_width = 1
-
+vert_width = 10
+edge_width = 100
 class Viewport:
 	objects = []
 
 	#Setup viewport
-	def __init__(self, w=1280, h=720, c=Camera(pos=(0, 0, -5),rot=(0,0,0),cam_type="persp"), obj=[], disable_mouse = False):
+	def __init__(self, w=1280, h=720, c=Camera(pos=(6.1, -2.7, -18.7),rot=(-.5,-0.712,0),cam_type="persp"), obj=[], disable_mouse = False):
 		pygame.init()
 		#Screen setup/View Settings
 		self.width = w

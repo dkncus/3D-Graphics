@@ -3,6 +3,7 @@ import math
 class Mesh:
 	def __init__(self, primitive_type, name="", pos=[0,0,0], verts=[], edges=[], faces=[], segments = 4):
 		self.name = name;
+		self.primitive_type = primitive_type
 		if primitive_type == "cube":
 			self.verts = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]]
 			for n in self.verts:
@@ -32,7 +33,10 @@ class Mesh:
 				n[1] -= pos[1]
 				n[2] -= pos[2]
 			self.faces = []
-
+		if primitive_type == "skeleton":
+			self.verts = [[0, 3, .2], [0,2.4,.05], [.7, 1.7, 0], [-.7, 1.7, 0], [2.1, 1.5, -.2], [-2.1, 1.5, -.2], [3.4, 1.6, 0], [-3.4, 1.6, 0], [3.7, 1.6, 0], [-3.7, 1.6, 0], [0,1.9,0], [0, 0, 0], [0, -1.9, 0], [.5,-1.9, 0], [-.5, -1.9, 0], [.6, -3.9, 0], [-.6,-3.9,0], [.6, -5.5, 0], [-.6, -5.5, 0]]
+			self.edges = [(0, 1), (1, 10), (10, 2), (2, 4), (4, 6), (6, 8), (10, 3), (3, 5), (5, 7), (7, 9), (10, 11), (11, 12), (12, 13), (13, 15), (15, 17), (12, 14), (14, 16), (16, 18)]
+			self.faces = []
 	def gen_uv_sphere(self, segments):
 		verts = []
 		edges = []
@@ -99,4 +103,17 @@ class Mesh:
 
 		for i in range(segments):
 			edges.append((i, i + segments))
-		return verts, edges
+		return verts, edge
+
+	def set_skeleton_state(self, jointpos, x_off, y_off, z_off):
+		assert (self.primitive_type == "skeleton"), "Cannot call method 'set_skeleton_state' for meshes not of type 'skeleton'."
+		jointpos = jointpos[1:]
+		for i, joint in enumerate(jointpos):
+			self.verts[i][0] = round(joint[0], 3) * .05 - x_off
+			self.verts[i][1] = round(joint[1], 3) * -.05 - y_off
+			self.verts[i][2] = round(joint[2], 3) * .05 - z_off
+
+		for joint in self.verts:
+			joint[0] -= x_off
+			joint[1] -= y_off
+			joint[2] -= z_off
