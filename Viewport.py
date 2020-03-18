@@ -7,6 +7,9 @@ import random
 
 vert_width = 10
 edge_width = 1
+vert_color = (253, 208, 0)
+edge_color = (0, 185, 250)
+
 class Viewport:
 	objects = []
 
@@ -165,10 +168,10 @@ class Viewport:
 		for item in render_queue:
 			if item[0] == 0 and draw_verts:
 				coord = item[2]
-				pygame.draw.rect(self.screen, (255, 255, 255), (coord[0] - vert_width // 2, coord[1] - vert_width // 2, vert_width, vert_width))
+				pygame.draw.rect(self.screen, vert_color, (coord[0] - vert_width // 2, coord[1] - vert_width // 2, vert_width, vert_width))
 			if item[0] == 1 and draw_edges:
 				points = item[2]
-				pygame.draw.aaline(self.screen, (255,255,255), points[0], points[1], edge_width)
+				pygame.draw.aaline(self.screen, edge_color, points[0], points[1], edge_width)
 			if item[0] == 2 and draw_faces:
 				points = item[2]
 				r = 140
